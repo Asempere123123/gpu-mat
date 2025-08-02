@@ -1,0 +1,130 @@
+use bytemuck::NoUninit;
+use std::marker::PhantomData;
+use wgpu::{Buffer, BufferAddress, util::DeviceExt};
+
+use super::{
+    bind_groups::{ADD_F32_PIPELINE, abc_f32_bind_group},
+    bind_groups::{INCREMENT_F32_PIPELINE, ab_f32_bind_group},
+    command_encoder::GlobalCommandEncoder,
+    download_vec::DownloadGpuVec,
+    dtype::Dtyped,
+    globals::DEVICE_QUEUE,
+    handle::{ComputeHandle, INTERMEDIATES_MAP},
+};
+
+pub struct GpuVec<F: NoUninit> {
+    buffer: Buffer,
+    _marker: PhantomData<F>,
+}
+
+impl<F: Dtyped> GpuVec<F> {
+    pub fn new_init(value: &[F]) -> Self {
+        let buffer = DEVICE_QUEUE
+            .0
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(value),
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            });
+        Self {
+            buffer,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn new_uninit(size: BufferAddress) -> Self {
+        let buffer = DEVICE_QUEUE.0.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        Self {
+            buffer,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn size(&self) -> BufferAddress {
+        self.buffer.size()
+    }
+
+    pub fn save_intermediate(&self, name: &'static str) -> &Self {
+        let intermediate_download_vec = DownloadGpuVec::new(self.size(), F::dtype());
+
+        GlobalCommandEncoder::lock().get().copy_buffer_to_buffer(
+            &self.buffer,
+            0,
+            &intermediate_download_vec.buffer(),
+            0,
+            self.size(),
+        );
+
+        INTERMEDIATES_MAP
+            .lock()
+            .insert(name, intermediate_download_vec);
+
+        self
+    }
+
+    pub fn compute(&self) -> ComputeHandle {
+        let output_download_vec = DownloadGpuVec::new(self.size(), F::dtype());
+
+        let mut encoder = GlobalCommandEncoder::lock();
+        encoder.get().copy_buffer_to_buffer(
+            &self.buffer,
+            0,
+            &output_download_vec.buffer(),
+            0,
+            self.size(),
+        );
+
+        let command_buffer = encoder.finish();
+        let idx = DEVICE_QUEUE.1.submit([command_buffer]);
+        ComputeHandle::new(output_download_vec, idx)
+    }
+
+    pub fn add(&self, lhs: &Self, rhs: &Self) -> &Self {
+        assert!(lhs.size() == rhs.size() && rhs.size() == self.size());
+
+        let mut encoder = GlobalCommandEncoder::lock();
+        let mut compute_pass = encoder
+            .get()
+            .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: None,
+                timestamp_writes: None,
+            });
+
+        compute_pass.set_pipeline(&ADD_F32_PIPELINE);
+        compute_pass.set_bind_group(
+            0,
+            &abc_f32_bind_group(&lhs.buffer, &rhs.buffer, &self.buffer),
+            &[],
+        );
+
+        let workgroup_count = self.size().div_ceil(64);
+        compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+
+        return self;
+    }
+
+    pub fn increment(&self, by: &Self) -> &Self {
+        assert!(self.size() == by.size());
+
+        let mut encoder = GlobalCommandEncoder::lock();
+        let mut compute_pass = encoder
+            .get()
+            .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: None,
+                timestamp_writes: None,
+            });
+
+        compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
+        compute_pass.set_bind_group(0, &ab_f32_bind_group(&self.buffer, &by.buffer), &[]);
+
+        let workgroup_count = self.size().div_ceil(64);
+        compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+
+        return self;
+    }
+}
