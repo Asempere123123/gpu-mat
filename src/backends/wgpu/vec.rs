@@ -1,5 +1,3 @@
-use bytemuck::NoUninit;
-use std::marker::PhantomData;
 use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
 use crate::backends::wgpu::dtype::Dtype;
@@ -86,6 +84,10 @@ impl GpuVec {
         ComputeHandle::new(output_download_vec, idx)
     }
 
+    pub fn set(&self, seter: GpuVecSetterFn<impl FnOnce(&GpuVec)>) {
+        seter.0(self)
+    }
+
     pub fn add(&self, lhs: &Self, rhs: &Self) -> &Self {
         assert!(lhs.size() == rhs.size() && rhs.size() == self.size());
 
@@ -128,5 +130,60 @@ impl GpuVec {
         compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
 
         return self;
+    }
+}
+
+pub struct GpuVecSetterFn<Fn: FnOnce(&GpuVec)>(Fn);
+
+impl core::ops::Add for &GpuVec {
+    type Output = GpuVecSetterFn<impl FnOnce(&GpuVec)>;
+    fn add(self, rhs: Self) -> Self::Output {
+        GpuVecSetterFn(|target| {
+            assert!(self.size() == rhs.size() && rhs.size() == target.size());
+
+            let mut encoder = GlobalCommandEncoder::lock();
+            let mut compute_pass = encoder
+                .get()
+                .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: None,
+                    timestamp_writes: None,
+                });
+
+            compute_pass.set_pipeline(&ADD_F32_PIPELINE);
+            compute_pass.set_bind_group(
+                0,
+                &abc_f32_bind_group(&self.buffer, &rhs.buffer, &target.buffer),
+                &[],
+            );
+
+            let workgroup_count = self.size().div_ceil(64);
+            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+        })
+    }
+}
+
+impl<'a, Fn: FnOnce(&GpuVec) + 'a> core::ops::Add<&'a GpuVec> for GpuVecSetterFn<Fn> {
+    type Output = GpuVecSetterFn<impl FnOnce(&GpuVec) + 'a>;
+
+    fn add(self, rhs: &'a GpuVec) -> Self::Output {
+        GpuVecSetterFn(move |target: &GpuVec| {
+            self.0(target);
+
+            assert!(rhs.size() == target.size());
+
+            let mut encoder = GlobalCommandEncoder::lock();
+            let mut compute_pass = encoder
+                .get()
+                .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: None,
+                    timestamp_writes: None,
+                });
+
+            compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
+            compute_pass.set_bind_group(0, &ab_f32_bind_group(&target.buffer, &rhs.buffer), &[]);
+
+            let workgroup_count = rhs.size().div_ceil(64);
+            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+        })
     }
 }
