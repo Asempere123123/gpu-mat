@@ -2,6 +2,8 @@ use bytemuck::NoUninit;
 use std::marker::PhantomData;
 use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
+use crate::backends::wgpu::dtype::Dtype;
+
 use super::{
     bind_groups::{ADD_F32_PIPELINE, abc_f32_bind_group},
     bind_groups::{INCREMENT_F32_PIPELINE, ab_f32_bind_group},
@@ -12,13 +14,13 @@ use super::{
     handle::{ComputeHandle, INTERMEDIATES_MAP},
 };
 
-pub struct GpuVec<F: NoUninit> {
+pub struct GpuVec {
     buffer: Buffer,
-    _marker: PhantomData<F>,
+    dtype: Dtype,
 }
 
-impl<F: Dtyped> GpuVec<F> {
-    pub fn new_init(value: &[F]) -> Self {
+impl GpuVec {
+    pub fn new_init<F: Dtyped>(value: &[F]) -> Self {
         let buffer = DEVICE_QUEUE
             .0
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -28,11 +30,11 @@ impl<F: Dtyped> GpuVec<F> {
             });
         Self {
             buffer,
-            _marker: PhantomData,
+            dtype: F::dtype(),
         }
     }
 
-    pub fn new_uninit(size: BufferAddress) -> Self {
+    pub fn new_uninit<F: Dtyped>(size: BufferAddress) -> Self {
         let buffer = DEVICE_QUEUE.0.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size,
@@ -41,7 +43,7 @@ impl<F: Dtyped> GpuVec<F> {
         });
         Self {
             buffer,
-            _marker: PhantomData,
+            dtype: F::dtype(),
         }
     }
 
@@ -50,7 +52,7 @@ impl<F: Dtyped> GpuVec<F> {
     }
 
     pub fn save_intermediate(&self, name: &'static str) -> &Self {
-        let intermediate_download_vec = DownloadGpuVec::new(self.size(), F::dtype());
+        let intermediate_download_vec = DownloadGpuVec::new(self.size(), self.dtype);
 
         GlobalCommandEncoder::lock().get().copy_buffer_to_buffer(
             &self.buffer,
@@ -68,7 +70,7 @@ impl<F: Dtyped> GpuVec<F> {
     }
 
     pub fn compute(&self) -> ComputeHandle {
-        let output_download_vec = DownloadGpuVec::new(self.size(), F::dtype());
+        let output_download_vec = DownloadGpuVec::new(self.size(), self.dtype);
 
         let mut encoder = GlobalCommandEncoder::lock();
         encoder.get().copy_buffer_to_buffer(

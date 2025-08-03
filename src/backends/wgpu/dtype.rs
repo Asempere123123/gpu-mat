@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use bytemuck::{AnyBitPattern, NoUninit};
 use wgpu::BufferView;
 
+#[derive(Clone, Copy)]
 pub enum Dtype {
     F32,
 }

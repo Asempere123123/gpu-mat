@@ -19,7 +19,7 @@ mod tests {
         let a = &vec::GpuVec::new_init(&nums);
         let b = &vec::GpuVec::new_init(&other_nums);
         let c = &vec::GpuVec::new_init(&more_nums);
-        let d = &vec::GpuVec::new_uninit(a.size());
+        let d = &vec::GpuVec::new_uninit::<f32>(a.size());
 
         d.add(a, b).save_intermediate(":3").increment(c);
 
