@@ -2,7 +2,9 @@ use wgpu::{Buffer, BufferAddress};
 
 use super::{
     bind_groups::{
-        ADD_F32_PIPELINE, INCREMENT_F32_PIPELINE, ab_f32_bind_group, abc_f32_bind_group,
+        ADD_F16_PIPELINE, ADD_F32_PIPELINE, ADD_F64_PIPELINE, INCREMENT_F16_PIPELINE,
+        INCREMENT_F32_PIPELINE, INCREMENT_F64_PIPELINE, ab_f16_bind_group, ab_f32_bind_group,
+        ab_f64_bind_group, abc_f16_bind_group, abc_f32_bind_group, abc_f64_bind_group,
     },
     command_encoder::GlobalCommandEncoder,
     download_vec::DownloadGpuTensor,
@@ -28,10 +30,10 @@ impl GpuTensor {
         }
     }
 
-    pub fn with_capacity<F: Dtyped>(capacity: BufferAddress) -> Self {
+    pub fn with_capacity(capacity: BufferAddress) -> Self {
         Self {
             shape: Vec::new(),
-            buffer: GpuVec::new_uninit::<F>(capacity),
+            buffer: GpuVec::new_uninit::<f32>(capacity),
         }
     }
 
@@ -115,13 +117,32 @@ impl GpuTensor {
                 timestamp_writes: None,
             });
 
-        // Todo: match on dtype and use corresponding add pipeline
-        compute_pass.set_pipeline(&ADD_F32_PIPELINE);
-        compute_pass.set_bind_group(
-            0,
-            &abc_f32_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
-            &[],
-        );
+        match self.dtype() {
+            Dtype::F16 => {
+                compute_pass.set_pipeline(&ADD_F16_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &abc_f16_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &[],
+                );
+            }
+            Dtype::F32 => {
+                compute_pass.set_pipeline(&ADD_F32_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &abc_f32_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &[],
+                );
+            }
+            Dtype::F64 => {
+                compute_pass.set_pipeline(&ADD_F64_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &abc_f64_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &[],
+                );
+            }
+        }
 
         let workgroup_count = self.capacity_elements().div_ceil(64);
         compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
@@ -141,9 +162,32 @@ impl GpuTensor {
                 timestamp_writes: None,
             });
 
-        // TODO: match on dtype
-        compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
-        compute_pass.set_bind_group(0, &ab_f32_bind_group(&self.buffer(), &by.buffer()), &[]);
+        match self.dtype() {
+            Dtype::F16 => {
+                compute_pass.set_pipeline(&INCREMENT_F16_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &ab_f16_bind_group(&self.buffer(), &by.buffer()),
+                    &[],
+                );
+            }
+            Dtype::F32 => {
+                compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &ab_f32_bind_group(&self.buffer(), &by.buffer()),
+                    &[],
+                );
+            }
+            Dtype::F64 => {
+                compute_pass.set_pipeline(&INCREMENT_F64_PIPELINE);
+                compute_pass.set_bind_group(
+                    0,
+                    &ab_f64_bind_group(&self.buffer(), &by.buffer()),
+                    &[],
+                );
+            }
+        }
 
         let workgroup_count = self.capacity_elements().div_ceil(64);
         compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);

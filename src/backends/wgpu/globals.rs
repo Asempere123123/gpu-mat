@@ -26,10 +26,20 @@ static ADAPTER: Lazy<Adapter> = Lazy::new(|| {
 });
 
 pub static DEVICE_QUEUE: Lazy<(Device, Queue)> = Lazy::new(|| {
+    let features = ADAPTER
+        .features()
+        .intersection(wgpu::Features::SHADER_F64 | wgpu::Features::SHADER_F16);
+    if !features.contains(wgpu::Features::SHADER_F64) {
+        log::warn!("f64 values are not suported on this device");
+    }
+    if !features.contains(wgpu::Features::SHADER_F16) {
+        log::warn!("f16 values are not suported on this device");
+    }
+
     ADAPTER
         .request_device(&wgpu::DeviceDescriptor {
             label: "GpuMat".into(),
-            required_features: wgpu::Features::empty(),
+            required_features: features,
             required_limits: wgpu::Limits::downlevel_defaults(),
             memory_hints: wgpu::MemoryHints::Performance,
             trace: wgpu::Trace::Off,

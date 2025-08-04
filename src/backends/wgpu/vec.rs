@@ -1,8 +1,9 @@
 use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
-use crate::backends::wgpu::dtype::Dtype;
-
-use super::{dtype::Dtyped, globals::DEVICE_QUEUE};
+use super::{
+    dtype::{Dtype, Dtyped},
+    globals::DEVICE_QUEUE,
+};
 
 pub struct GpuVec {
     buffer: Buffer,
