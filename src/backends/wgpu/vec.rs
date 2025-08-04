@@ -139,25 +139,7 @@ impl core::ops::Add for &GpuVec {
     type Output = GpuVecSetterFn<impl FnOnce(&GpuVec)>;
     fn add(self, rhs: Self) -> Self::Output {
         GpuVecSetterFn(|target| {
-            assert!(self.size() == rhs.size() && rhs.size() == target.size());
-
-            let mut encoder = GlobalCommandEncoder::lock();
-            let mut compute_pass = encoder
-                .get()
-                .begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: None,
-                    timestamp_writes: None,
-                });
-
-            compute_pass.set_pipeline(&ADD_F32_PIPELINE);
-            compute_pass.set_bind_group(
-                0,
-                &abc_f32_bind_group(&self.buffer, &rhs.buffer, &target.buffer),
-                &[],
-            );
-
-            let workgroup_count = self.size().div_ceil(64);
-            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+            target.add(self, rhs);
         })
     }
 }
@@ -169,21 +151,7 @@ impl<'a, Fn: FnOnce(&GpuVec) + 'a> core::ops::Add<&'a GpuVec> for GpuVecSetterFn
         GpuVecSetterFn(move |target: &GpuVec| {
             self.0(target);
 
-            assert!(rhs.size() == target.size());
-
-            let mut encoder = GlobalCommandEncoder::lock();
-            let mut compute_pass = encoder
-                .get()
-                .begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: None,
-                    timestamp_writes: None,
-                });
-
-            compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
-            compute_pass.set_bind_group(0, &ab_f32_bind_group(&target.buffer, &rhs.buffer), &[]);
-
-            let workgroup_count = rhs.size().div_ceil(64);
-            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+            target.increment(rhs);
         })
     }
 }
