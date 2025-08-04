@@ -2,15 +2,7 @@ use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
 use crate::backends::wgpu::dtype::Dtype;
 
-use super::{
-    bind_groups::{ADD_F32_PIPELINE, abc_f32_bind_group},
-    bind_groups::{INCREMENT_F32_PIPELINE, ab_f32_bind_group},
-    command_encoder::GlobalCommandEncoder,
-    download_vec::DownloadGpuVec,
-    dtype::Dtyped,
-    globals::DEVICE_QUEUE,
-    handle::{ComputeHandle, INTERMEDIATES_MAP},
-};
+use super::{dtype::Dtyped, globals::DEVICE_QUEUE};
 
 pub struct GpuVec {
     buffer: Buffer,
@@ -45,113 +37,23 @@ impl GpuVec {
         }
     }
 
-    pub fn size(&self) -> BufferAddress {
+    pub fn capacity(&self) -> BufferAddress {
         self.buffer.size()
     }
 
-    pub fn save_intermediate(&self, name: &'static str) -> &Self {
-        let intermediate_download_vec = DownloadGpuVec::new(self.size(), self.dtype);
-
-        GlobalCommandEncoder::lock().get().copy_buffer_to_buffer(
-            &self.buffer,
-            0,
-            &intermediate_download_vec.buffer(),
-            0,
-            self.size(),
-        );
-
-        INTERMEDIATES_MAP
-            .lock()
-            .insert(name, intermediate_download_vec);
-
-        self
+    pub fn capacity_elements(&self) -> BufferAddress {
+        self.buffer.size() / self.dtype.size() as BufferAddress
     }
 
-    pub fn compute(&self) -> ComputeHandle {
-        let output_download_vec = DownloadGpuVec::new(self.size(), self.dtype);
-
-        let mut encoder = GlobalCommandEncoder::lock();
-        encoder.get().copy_buffer_to_buffer(
-            &self.buffer,
-            0,
-            &output_download_vec.buffer(),
-            0,
-            self.size(),
-        );
-
-        let command_buffer = encoder.finish();
-        let idx = DEVICE_QUEUE.1.submit([command_buffer]);
-        ComputeHandle::new(output_download_vec, idx)
+    pub fn set_dtype(&mut self, dtype: Dtype) {
+        self.dtype = dtype;
     }
 
-    pub fn set(&self, seter: GpuVecSetterFn<impl FnOnce(&GpuVec)>) {
-        seter.0(self)
+    pub fn dtype(&self) -> Dtype {
+        self.dtype
     }
 
-    pub fn add(&self, lhs: &Self, rhs: &Self) -> &Self {
-        assert!(lhs.size() == rhs.size() && rhs.size() == self.size());
-
-        let mut encoder = GlobalCommandEncoder::lock();
-        let mut compute_pass = encoder
-            .get()
-            .begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: None,
-                timestamp_writes: None,
-            });
-
-        compute_pass.set_pipeline(&ADD_F32_PIPELINE);
-        compute_pass.set_bind_group(
-            0,
-            &abc_f32_bind_group(&lhs.buffer, &rhs.buffer, &self.buffer),
-            &[],
-        );
-
-        let workgroup_count = self.size().div_ceil(64);
-        compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
-
-        return self;
-    }
-
-    pub fn increment(&self, by: &Self) -> &Self {
-        assert!(self.size() == by.size());
-
-        let mut encoder = GlobalCommandEncoder::lock();
-        let mut compute_pass = encoder
-            .get()
-            .begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: None,
-                timestamp_writes: None,
-            });
-
-        compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
-        compute_pass.set_bind_group(0, &ab_f32_bind_group(&self.buffer, &by.buffer), &[]);
-
-        let workgroup_count = self.size().div_ceil(64);
-        compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
-
-        return self;
-    }
-}
-
-pub struct GpuVecSetterFn<Fn: FnOnce(&GpuVec)>(Fn);
-
-impl core::ops::Add for &GpuVec {
-    type Output = GpuVecSetterFn<impl FnOnce(&GpuVec)>;
-    fn add(self, rhs: Self) -> Self::Output {
-        GpuVecSetterFn(|target| {
-            target.add(self, rhs);
-        })
-    }
-}
-
-impl<'a, Fn: FnOnce(&GpuVec) + 'a> core::ops::Add<&'a GpuVec> for GpuVecSetterFn<Fn> {
-    type Output = GpuVecSetterFn<impl FnOnce(&GpuVec) + 'a>;
-
-    fn add(self, rhs: &'a GpuVec) -> Self::Output {
-        GpuVecSetterFn(move |target: &GpuVec| {
-            self.0(target);
-
-            target.increment(rhs);
-        })
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
     }
 }

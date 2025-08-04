@@ -3,18 +3,18 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use wgpu::SubmissionIndex;
 
-use super::{download_vec::DownloadGpuVec, dtype::DtypeVec, globals::DEVICE_QUEUE};
+use super::{download_vec::DownloadGpuTensor, dtype::DtypeVec, globals::DEVICE_QUEUE};
 
-pub static INTERMEDIATES_MAP: Lazy<Mutex<HashMap<&'static str, DownloadGpuVec>>> =
+pub static INTERMEDIATES_MAP: Lazy<Mutex<HashMap<&'static str, DownloadGpuTensor>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub struct ComputeHandle {
-    output: DownloadGpuVec,
+    output: DownloadGpuTensor,
     submission: SubmissionIndex,
 }
 
 impl ComputeHandle {
-    pub fn new(output: DownloadGpuVec, submission: SubmissionIndex) -> Self {
+    pub fn new(output: DownloadGpuTensor, submission: SubmissionIndex) -> Self {
         output
             .buffer()
             .slice(..)

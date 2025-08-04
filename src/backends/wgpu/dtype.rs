@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use bytemuck::{AnyBitPattern, NoUninit};
 use wgpu::BufferView;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Dtype {
     F32,
 }
@@ -12,6 +12,12 @@ impl Dtype {
     pub fn to_vec(&self, data: &BufferView) -> DtypeVec {
         match self {
             Dtype::F32 => DtypeVec::F32(bytemuck::cast_slice(data).to_vec()),
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Dtype::F32 => core::mem::size_of::<f32>(),
         }
     }
 }

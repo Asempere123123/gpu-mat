@@ -4,7 +4,10 @@ mod download_vec;
 mod dtype;
 mod globals;
 mod handle;
+mod tensor;
 mod vec;
+
+pub use tensor::GpuTensor;
 
 #[cfg(test)]
 mod tests {
@@ -12,19 +15,24 @@ mod tests {
 
     #[test]
     fn wgpu() {
-        let nums: [f32; 2] = [1., 2.];
-        let other_nums: [f32; 2] = [2., 3.];
-        let more_nums: [f32; 2] = [1., 1.];
+        let a = &tensor::GpuTensor::new(vec![32], &[1.; 32]);
+        let b = &tensor::GpuTensor::new(vec![32], &[2.; 32]);
+        let c = &tensor::GpuTensor::new(vec![32], &[0.5; 32]);
+        let d = &mut tensor::GpuTensor::with_capacity::<f32>(a.capacity());
 
-        let a = &vec::GpuVec::new_init(&nums);
-        let b = &vec::GpuVec::new_init(&other_nums);
-        let c = &vec::GpuVec::new_init(&more_nums);
-        let d = &vec::GpuVec::new_uninit::<f32>(a.size());
-
-        d.set(a + b + c);
-        // d.add(a, b).increment(c);
-
-        let result = d.compute().join();
-        panic!("{:?}", result);
+        panic!(
+            "{:?}",
+            d.set((a + b).save_intermediate("holi") + c)
+                .compute()
+                .join()
+        )
+        /*panic!(
+            "{:?}",
+            c.add(a, b)
+                .save_intermediate_mut(":3")
+                .increment(a)
+                .compute()
+                .join()
+        );*/
     }
 }
