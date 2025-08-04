@@ -176,7 +176,6 @@ impl core::ops::Add for &GpuTensor {
     }
 }
 
-// TODO: implementar en sentido inverso, de Tensor + SetterFn, que simplemente le de la vuelta
 impl<'a, Fn: FnOnce(&mut GpuTensor) + 'a> core::ops::Add<&'a GpuTensor> for GpuTensorSetterFn<Fn> {
     type Output = GpuTensorSetterFn<impl FnOnce(&mut GpuTensor) + 'a>;
 
@@ -186,5 +185,13 @@ impl<'a, Fn: FnOnce(&mut GpuTensor) + 'a> core::ops::Add<&'a GpuTensor> for GpuT
 
             target.increment(rhs);
         })
+    }
+}
+
+impl<'a, Fn: FnOnce(&mut GpuTensor) + 'a> core::ops::Add<GpuTensorSetterFn<Fn>> for &'a GpuTensor {
+    type Output = GpuTensorSetterFn<impl FnOnce(&mut GpuTensor)>;
+
+    fn add(self, rhs: GpuTensorSetterFn<Fn>) -> Self::Output {
+        rhs + self
     }
 }

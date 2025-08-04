@@ -22,7 +22,7 @@ mod tests {
 
         panic!(
             "{:?}",
-            d.set((a + b).save_intermediate("holi") + c)
+            d.set(a + (b + c).save_intermediate("holi"))
                 .compute()
                 .join()
         )
