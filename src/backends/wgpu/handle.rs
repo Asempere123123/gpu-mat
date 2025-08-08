@@ -40,11 +40,16 @@ impl ComputeHandle {
             .drain()
             .map(|(k, vec)| {
                 let data = vec.buffer().slice(..).get_mapped_range();
-                let vec = vec.dtype().to_vec(&data);
+                let vec = vec.dtype().to_vec(&data, vec.shape());
                 (k, vec)
             })
             .collect();
         let output_data = self.output.buffer().slice(..).get_mapped_range();
-        (self.output.dtype().to_vec(&output_data), intermediates)
+        (
+            self.output
+                .dtype()
+                .to_vec(&output_data, self.output.shape()),
+            intermediates,
+        )
     }
 }

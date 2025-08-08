@@ -1,5 +1,6 @@
 use bytemuck::{AnyBitPattern, NoUninit};
 use half::f16;
+use ndarray::{Array, IxDyn};
 use std::fmt::Debug;
 use wgpu::BufferView;
 
@@ -11,11 +12,29 @@ pub enum Dtype {
 }
 
 impl Dtype {
-    pub fn to_vec(&self, data: &BufferView) -> DtypeVec {
+    pub fn to_vec(&self, data: &BufferView, shape: &Vec<u32>) -> DtypeVec {
         match self {
-            Dtype::F16 => DtypeVec::F16(bytemuck::cast_slice(data).to_vec()),
-            Dtype::F32 => DtypeVec::F32(bytemuck::cast_slice(data).to_vec()),
-            Dtype::F64 => DtypeVec::F64(bytemuck::cast_slice(data).to_vec()),
+            Dtype::F16 => DtypeVec::F16(
+                Array::from_shape_vec(
+                    IxDyn(&shape.iter().map(|&idx| idx as usize).collect::<Vec<_>>()),
+                    bytemuck::cast_slice(data).to_vec(),
+                )
+                .unwrap(),
+            ),
+            Dtype::F32 => DtypeVec::F32(
+                Array::from_shape_vec(
+                    IxDyn(&shape.iter().map(|&idx| idx as usize).collect::<Vec<_>>()),
+                    bytemuck::cast_slice(data).to_vec(),
+                )
+                .unwrap(),
+            ),
+            Dtype::F64 => DtypeVec::F64(
+                Array::from_shape_vec(
+                    IxDyn(&shape.iter().map(|&idx| idx as usize).collect::<Vec<_>>()),
+                    bytemuck::cast_slice(data).to_vec(),
+                )
+                .unwrap(),
+            ),
         }
     }
 
@@ -30,9 +49,9 @@ impl Dtype {
 
 #[derive(Debug, PartialEq)]
 pub enum DtypeVec {
-    F16(Vec<f16>),
-    F32(Vec<f32>),
-    F64(Vec<f64>),
+    F16(Array<f16, IxDyn>),
+    F32(Array<f32, IxDyn>),
+    F64(Array<f64, IxDyn>),
 }
 
 pub trait Dtyped: NoUninit + AnyBitPattern + Debug {
