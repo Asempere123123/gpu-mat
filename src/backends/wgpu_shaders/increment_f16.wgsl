@@ -1,9 +1,18 @@
 enable f16;
 
+struct TensorInfo {
+    shape: array<vec4<u32>, 2>,
+    rank: u32,
+    length: u32,
+}
+
 @group(0) @binding(0)
-var<storage, read_write> a: array<f16>;
+var<uniform> tensor_info: TensorInfo;
 
 @group(0) @binding(1)
+var<storage, read_write> a: array<f16>;
+
+@group(0) @binding(2)
 var<storage, read> b: array<f16>;
 
 @compute @workgroup_size(64)

@@ -12,20 +12,23 @@ use super::{
     dtype::Dtyped,
     globals::DEVICE_QUEUE,
     handle::{ComputeHandle, INTERMEDIATES_MAP},
+    tensor_info::{TensorInfo, UniformTensorInfo},
     vec::GpuVec,
 };
 
 pub struct GpuTensor {
-    shape: Vec<BufferAddress>,
+    shape: Vec<u32>,
+    info: TensorInfo,
     buffer: GpuVec,
 }
 
 impl GpuTensor {
-    pub fn new<F: Dtyped>(shape: Vec<BufferAddress>, values: &[F]) -> Self {
-        assert!(shape.iter().product::<BufferAddress>() == values.len() as BufferAddress);
+    pub fn new<F: Dtyped>(shape: Vec<u32>, values: &[F]) -> Self {
+        assert!(shape.iter().product::<u32>() == values.len() as u32);
 
         Self {
             shape,
+            info: TensorInfo::new(),
             buffer: GpuVec::new_init(values),
         }
     }
@@ -33,6 +36,7 @@ impl GpuTensor {
     pub fn with_capacity(capacity: BufferAddress) -> Self {
         Self {
             shape: Vec::new(),
+            info: TensorInfo::new(),
             buffer: GpuVec::new_uninit::<f32>(capacity),
         }
     }
@@ -105,10 +109,11 @@ impl GpuTensor {
         self.buffer.set_dtype(lhs.dtype());
 
         assert!(lhs.shape == rhs.shape);
-        assert!(self.buffer.capacity_elements() >= lhs.shape.iter().product::<BufferAddress>());
+        assert!(self.buffer.capacity_elements() as u32 >= lhs.shape.iter().product::<u32>());
         self.shape.clear();
         self.shape.extend_from_slice(&lhs.shape);
 
+        self.info.set(&UniformTensorInfo::new(&self.shape));
         let mut encoder = GlobalCommandEncoder::lock();
         let mut compute_pass = encoder
             .get()
@@ -122,7 +127,12 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&ADD_F16_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &abc_f16_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &abc_f16_bind_group(
+                        self.info.buffer(),
+                        &lhs.buffer(),
+                        &rhs.buffer(),
+                        &self.buffer(),
+                    ),
                     &[],
                 );
             }
@@ -130,7 +140,12 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&ADD_F32_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &abc_f32_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &abc_f32_bind_group(
+                        self.info.buffer(),
+                        &lhs.buffer(),
+                        &rhs.buffer(),
+                        &self.buffer(),
+                    ),
                     &[],
                 );
             }
@@ -138,7 +153,12 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&ADD_F64_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &abc_f64_bind_group(&lhs.buffer(), &rhs.buffer(), &self.buffer()),
+                    &abc_f64_bind_group(
+                        self.info.buffer(),
+                        &lhs.buffer(),
+                        &rhs.buffer(),
+                        &self.buffer(),
+                    ),
                     &[],
                 );
             }
@@ -154,6 +174,7 @@ impl GpuTensor {
         assert!(self.dtype() == by.dtype());
         assert!(self.shape == by.shape);
 
+        self.info.set(&UniformTensorInfo::new(&self.shape));
         let mut encoder = GlobalCommandEncoder::lock();
         let mut compute_pass = encoder
             .get()
@@ -167,7 +188,7 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&INCREMENT_F16_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &ab_f16_bind_group(&self.buffer(), &by.buffer()),
+                    &ab_f16_bind_group(self.info.buffer(), &self.buffer(), &by.buffer()),
                     &[],
                 );
             }
@@ -175,7 +196,7 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&INCREMENT_F32_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &ab_f32_bind_group(&self.buffer(), &by.buffer()),
+                    &ab_f32_bind_group(self.info.buffer(), &self.buffer(), &by.buffer()),
                     &[],
                 );
             }
@@ -183,7 +204,7 @@ impl GpuTensor {
                 compute_pass.set_pipeline(&INCREMENT_F64_PIPELINE);
                 compute_pass.set_bind_group(
                     0,
-                    &ab_f64_bind_group(&self.buffer(), &by.buffer()),
+                    &ab_f64_bind_group(self.info.buffer(), &self.buffer(), &by.buffer()),
                     &[],
                 );
             }

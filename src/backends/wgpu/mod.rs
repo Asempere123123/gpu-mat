@@ -5,6 +5,7 @@ mod dtype;
 mod globals;
 mod handle;
 mod tensor;
+mod tensor_info;
 mod vec;
 
 pub use tensor::GpuTensor;

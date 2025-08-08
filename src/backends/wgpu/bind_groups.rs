@@ -1,6 +1,9 @@
 use once_cell::sync::Lazy;
 use std::num::NonZeroU64;
-use wgpu::{BindGroup, BindGroupLayout, Buffer, ComputePipeline, PipelineLayout, ShaderModule};
+use wgpu::{
+    BindGroup, BindGroupLayout, Buffer, BufferAddress, ComputePipeline, PipelineLayout,
+    ShaderModule,
+};
 
 use super::globals::DEVICE_QUEUE;
 
@@ -14,8 +17,13 @@ static ABC_F32_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        min_binding_size: Some(unsafe { NonZeroU64::new(4).unwrap_unchecked() }),
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
                         has_dynamic_offset: false,
                     },
                     count: None,
@@ -32,6 +40,16 @@ static ABC_F32_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        min_binding_size: Some(unsafe { NonZeroU64::new(4).unwrap_unchecked() }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -54,8 +72,13 @@ static ABC_F64_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        min_binding_size: Some(unsafe { NonZeroU64::new(8).unwrap_unchecked() }),
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
                         has_dynamic_offset: false,
                     },
                     count: None,
@@ -72,6 +95,16 @@ static ABC_F64_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        min_binding_size: Some(unsafe { NonZeroU64::new(8).unwrap_unchecked() }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -94,8 +127,13 @@ static ABC_F16_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        min_binding_size: Some(unsafe { NonZeroU64::new(2).unwrap_unchecked() }),
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
                         has_dynamic_offset: false,
                     },
                     count: None,
@@ -112,6 +150,16 @@ static ABC_F16_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        min_binding_size: Some(unsafe { NonZeroU64::new(2).unwrap_unchecked() }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -164,6 +212,21 @@ static AB_F32_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         min_binding_size: Some(unsafe { NonZeroU64::new(4).unwrap_unchecked() }),
                         has_dynamic_offset: false,
@@ -171,7 +234,7 @@ static AB_F32_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1,
+                    binding: 2,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -204,6 +267,21 @@ static AB_F64_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         min_binding_size: Some(unsafe { NonZeroU64::new(8).unwrap_unchecked() }),
                         has_dynamic_offset: false,
@@ -211,7 +289,7 @@ static AB_F64_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1,
+                    binding: 2,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -244,6 +322,21 @@ static AB_F16_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        min_binding_size: Some(unsafe {
+                            NonZeroU64::new(core::mem::size_of::<
+                                super::tensor_info::UniformTensorInfo,
+                            >() as BufferAddress)
+                            .unwrap_unchecked()
+                        }),
+                        has_dynamic_offset: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         min_binding_size: Some(unsafe { NonZeroU64::new(2).unwrap_unchecked() }),
                         has_dynamic_offset: false,
@@ -251,7 +344,7 @@ static AB_F16_BIND_GROUP_LAYOUT: Lazy<BindGroupLayout> = Lazy::new(|| {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1,
+                    binding: 2,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -388,7 +481,7 @@ pub static INCREMENT_F16_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
         })
 });
 
-pub fn abc_f32_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
+pub fn abc_f32_bind_group(info: &Buffer, a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -397,21 +490,25 @@ pub fn abc_f32_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: b.as_entire_binding(),
+                    resource: a.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
+                    resource: b.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
                     resource: c.as_entire_binding(),
                 },
             ],
         })
 }
 
-pub fn abc_f64_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
+pub fn abc_f64_bind_group(info: &Buffer, a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -420,21 +517,25 @@ pub fn abc_f64_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: b.as_entire_binding(),
+                    resource: a.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
+                    resource: b.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
                     resource: c.as_entire_binding(),
                 },
             ],
         })
 }
 
-pub fn abc_f16_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
+pub fn abc_f16_bind_group(info: &Buffer, a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -443,21 +544,25 @@ pub fn abc_f16_bind_group(a: &Buffer, b: &Buffer, c: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: b.as_entire_binding(),
+                    resource: a.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
+                    resource: b.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
                     resource: c.as_entire_binding(),
                 },
             ],
         })
 }
 
-pub fn ab_f32_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
+pub fn ab_f32_bind_group(info: &Buffer, a: &Buffer, b: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -466,17 +571,21 @@ pub fn ab_f32_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
+                    resource: a.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
                     resource: b.as_entire_binding(),
                 },
             ],
         })
 }
 
-pub fn ab_f64_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
+pub fn ab_f64_bind_group(info: &Buffer, a: &Buffer, b: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -485,17 +594,21 @@ pub fn ab_f64_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
+                    resource: a.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
                     resource: b.as_entire_binding(),
                 },
             ],
         })
 }
 
-pub fn ab_f16_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
+pub fn ab_f16_bind_group(info: &Buffer, a: &Buffer, b: &Buffer) -> BindGroup {
     DEVICE_QUEUE
         .0
         .create_bind_group(&wgpu::BindGroupDescriptor {
@@ -504,10 +617,14 @@ pub fn ab_f16_bind_group(a: &Buffer, b: &Buffer) -> BindGroup {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: a.as_entire_binding(),
+                    resource: info.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
+                    resource: a.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
                     resource: b.as_entire_binding(),
                 },
             ],

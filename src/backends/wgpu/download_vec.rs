@@ -3,13 +3,13 @@ use wgpu::{Buffer, BufferAddress};
 use super::{dtype::Dtype, globals::DEVICE_QUEUE};
 
 pub struct DownloadGpuTensor {
-    shape: Vec<BufferAddress>,
+    shape: Vec<u32>,
     buffer: Buffer,
     dtype: Dtype,
 }
 
 impl DownloadGpuTensor {
-    pub fn new(size: BufferAddress, shape: Vec<BufferAddress>, dtype: Dtype) -> Self {
+    pub fn new(size: BufferAddress, shape: Vec<u32>, dtype: Dtype) -> Self {
         let buffer = DEVICE_QUEUE.0.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size,
@@ -27,7 +27,7 @@ impl DownloadGpuTensor {
         &self.buffer
     }
 
-    pub fn shape(&self) -> &Vec<BufferAddress> {
+    pub fn shape(&self) -> &Vec<u32> {
         &self.shape
     }
 
