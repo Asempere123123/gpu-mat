@@ -69,4 +69,31 @@ mod tests {
                 ))
         );
     }
+
+    #[test]
+    fn mul_add_f32() {
+        use pollster::FutureExt;
+
+        type F = f32;
+
+        let a = &tensor::GpuTensor::new::<F>(vec![2, 2], &[2.; 4]);
+        let b = &tensor::GpuTensor::new::<F>(vec![2, 2], &[2.; 4]);
+        let c = &tensor::GpuTensor::new::<F>(vec![2, 2], &[0.75; 4]);
+        let d = &mut tensor::GpuTensor::with_capacity(a.capacity());
+
+        assert!(
+            d.set(a * b * c + c).compute().block_on().0
+                == super::dtype::DtypeVec::F32(ndarray::Array::from_elem(
+                    ndarray::IxDyn(&[2, 2]),
+                    3.75
+                ))
+        );
+        assert!(
+            d.mul_in_place(a).compute().join().0
+                == super::dtype::DtypeVec::F32(ndarray::Array::from_elem(
+                    ndarray::IxDyn(&[2, 2]),
+                    7.5
+                ))
+        );
+    }
 }

@@ -424,6 +424,63 @@ pub static ADD_F16_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
         })
 });
 
+static MUL_F32_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/mul_f32.wgsl"))
+});
+
+pub static MUL_F32_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&ABC_F32_PIPELINE_LAYOUT),
+            module: &MUL_F32_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
+static MUL_F16_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/mul_f16.wgsl"))
+});
+
+pub static MUL_F16_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&ABC_F16_PIPELINE_LAYOUT),
+            module: &MUL_F16_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
+static MUL_F64_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/add_f64.wgsl"))
+});
+
+pub static MUL_F64_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&ABC_F64_PIPELINE_LAYOUT),
+            module: &MUL_F64_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
 static INCREMENT_F32_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
     DEVICE_QUEUE
         .0
@@ -475,6 +532,63 @@ pub static INCREMENT_F16_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
             label: None,
             layout: Some(&AB_F16_PIPELINE_LAYOUT),
             module: &INCREMENT_F16_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
+static MUL_IN_PLACE_F32_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/mul_in_place_f32.wgsl"))
+});
+
+pub static MUL_IN_PLACE_F32_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&AB_F32_PIPELINE_LAYOUT),
+            module: &MUL_IN_PLACE_F32_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
+static MUL_IN_PLACE_F16_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/mul_in_place_f16.wgsl"))
+});
+
+pub static MUL_IN_PLACE_F16_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&AB_F16_PIPELINE_LAYOUT),
+            module: &MUL_IN_PLACE_F16_MODULE,
+            entry_point: None,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            cache: None,
+        })
+});
+
+static MUL_IN_PLACE_F64_MODULE: Lazy<ShaderModule> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_shader_module(wgpu::include_wgsl!("../wgpu_shaders/mul_in_place_f64.wgsl"))
+});
+
+pub static MUL_IN_PLACE_F64_PIPELINE: Lazy<ComputePipeline> = Lazy::new(|| {
+    DEVICE_QUEUE
+        .0
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: Some(&AB_F64_PIPELINE_LAYOUT),
+            module: &MUL_IN_PLACE_F64_MODULE,
             entry_point: None,
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
